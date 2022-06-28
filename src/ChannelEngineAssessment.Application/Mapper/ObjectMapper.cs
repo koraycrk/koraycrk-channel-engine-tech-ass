@@ -2,6 +2,7 @@
 using ChannelEngineAssessment.Core.Entities;
 using AutoMapper;
 using System;
+using AspnetRun.Application.Models;
 
 namespace ChannelEngineAssessment.Application.Mapper
 {
@@ -26,7 +27,20 @@ namespace ChannelEngineAssessment.Application.Mapper
     {
         public ChannelEngineAssessmentDtoMapper()
         {
-            
+            CreateMap<Order, OrderModel>().ReverseMap();
+            CreateMap<BillingAddress, BillingAddressModel>().ReverseMap();
+            CreateMap<ShippingAddress, ShippingAddressModel>().ReverseMap();
+            CreateMap<Lines, LineModel>()
+                 .ForPath(dest => dest.StockLocation, opt => opt.MapFrom(src => src.StockLocation))
+                .ReverseMap();
+            CreateMap<StockLocation, StockLocationModel>().ReverseMap();
+            CreateMap<ProductModel, LineModel>()
+                .ForMember(dest => dest.Description, opt => opt.MapFrom(src => src.Name))
+                .ForMember(dest => dest.Quantity, opt => opt.MapFrom(src => src.TotalQuantity))
+                .ForMember(dest => dest.Gtin, opt => opt.MapFrom(src => src.GTIN))
+                .ForMember(dest => dest.MerchantProductNo, opt => opt.MapFrom(src => src.MerchantProductNo))
+                .ForPath(dest => dest.StockLocation.Id, opt => opt.MapFrom(src => src.StockLocationId))
+                .ReverseMap();
         }
     }
 }

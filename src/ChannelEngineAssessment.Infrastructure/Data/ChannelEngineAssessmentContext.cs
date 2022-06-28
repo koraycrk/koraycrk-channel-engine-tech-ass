@@ -4,17 +4,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace ChannelEngineAssessment.Infrastructure.Data
 {
-    public class ChannelEngineAssessmentContext : DbContext
+    public class ChannelEngineAssessmentContext 
     {
-        public ChannelEngineAssessmentContext(DbContextOptions options) : base(options)
+        public ChannelEngineAssessmentContext() 
         {
-        }
-
-       
-
-        protected override void OnModelCreating(ModelBuilder builder)
-        {
-           
         }
     }
 }

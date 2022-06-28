@@ -1,0 +1,37 @@
+﻿@page
+@model ChannelEngineAssessment.Web.Pages.Product.IndexModel
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Product List</h1>
+
+
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th scope="col">Product No</th>
+            <th scope="col">Name</th>
+            <th scope="col">Total Quantity</th>
+            <th scope="col">GTIN</th>
+        </tr>
+    </thead>
+    <tbody>
+         <form method="post">
+        @foreach (var product in Model.ProductList)
+        {
+            <tr>
+                <th scope="row">@product.MerchantProductNo</th>
+                <td>@product.Name</td>
+                <td>@product.TotalQuantity</td>
+                <td>@product.GTIN</td>
+                 <td>
+                      <input type="submit" asp-route-MerchantProductNo="@product.MerchantProductNo" asp-route-StockLocationId="@product.StockLocationId" value="Set Stock 25" class="btn btn-primary" />
+                 </td>
+            </tr>
+        }
+        </form>
+    </tbody>
+</table>

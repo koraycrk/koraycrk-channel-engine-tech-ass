@@ -1,100 +1,84 @@
-﻿using ChannelEngineAssessment.Core.Entities.Base;
+﻿using ChannelEngineAssessment.Core.Entities;
+using ChannelEngineAssessment.Core.Entities.Base;
 using ChannelEngineAssessment.Core.Repositories.Base;
 using ChannelEngineAssessment.Core.Specifications.Base;
 using ChannelEngineAssessment.Infrastructure.Data;
+using ChannelEngineAssessment.Infrastructure.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace ChannelEngineAssessment.Infrastructure.Repository.Base
 {
-    public class Repository<T> : IRepository<T> where T : Entity
+    public class Repository<T> 
     {
-        protected readonly ChannelEngineAssessmentContext _dbContext;
+        #region Url Info
+        private const string GetOrderURL = "https://api-dev.channelengine.net/api/v2/orders?apikey=541b989ef78ccb1bad630ea5b85c6ebff9ca3322";
+        private const string UpdateProductURL = "https://api-dev.channelengine.net/api/v2/offer/stock?apikey=541b989ef78ccb1bad630ea5b85c6ebff9ca3322";
+        #endregion
 
-        public Repository(ChannelEngineAssessmentContext dbContext)
+        public async Task<IReadOnlyList<T>> GetAllAsync(string status)
         {
-            _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
+            try
+            {
+                var httpClient = new HttpClient();
+                var content = await httpClient.GetStringAsync(GetOrderURL + "&statuses=" + status);
+                var orders = await Task.Run(() => JsonConvert.DeserializeObject<OrderResponse>(content));
+                return (IReadOnlyList<T>)orders.Content;
+            }
+            catch (Exception ex)
+            {
+
+                throw new InfrastructureException("GetAllAsync exception", ex);
+            }
+           
         }
 
-        public async Task<IReadOnlyList<T>> GetAllAsync()
+        public async Task<bool> UpdateStockAsync(int stock, int StockLocationId, string merchProductNo)
         {
-            return await _dbContext.Set<T>().ToListAsync();
+            var result = false;
+            try
+            {
+                var stockInfo = new List<StockUpdate>();
+                stockInfo.Add(new StockUpdate
+                {
+                    MerchantProductNo = merchProductNo,
+                    StockLocations = new List<StockInfo> { new StockInfo { Stock = stock, StockLocationId = StockLocationId } }
+                });
+                string serializedObject = Newtonsoft.Json.JsonConvert.SerializeObject(stockInfo);
+                HttpWebRequest request = WebRequest.CreateHttp(UpdateProductURL);
+                request.Method = "PUT";
+                request.AllowWriteStreamBuffering = false;
+                request.ContentType = "application/json";
+                request.Accept = "Accept=application/json";
+                request.SendChunked = false;
+                request.ContentLength = serializedObject.Length;
+                using (var writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    writer.Write(serializedObject);
+                }
+                var response = await request.GetResponseAsync() as HttpWebResponse;
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    result = true;
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw new InfrastructureException("GetAllAsync exception", ex);
+            }
+
+            return result;
         }
 
-        public async Task<IReadOnlyList<T>> GetAsync(ISpecification<T> spec)
-        {
-            return await ApplySpecification(spec).ToListAsync();
-        }
 
-        public async Task<int> CountAsync(ISpecification<T> spec)
-        {
-            return await ApplySpecification(spec).CountAsync();
-        }
-
-        private IQueryable<T> ApplySpecification(ISpecification<T> spec)
-        {
-            return SpecificationEvaluator<T>.GetQuery(_dbContext.Set<T>().AsQueryable(), spec);
-        }
-
-        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate)
-        {
-            return await _dbContext.Set<T>().Where(predicate).ToListAsync();
-        }
-
-        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, string includeString = null, bool disableTracking = true)
-        {
-            IQueryable<T> query = _dbContext.Set<T>();
-            if (disableTracking) query = query.AsNoTracking();
-
-            if (!string.IsNullOrWhiteSpace(includeString)) query = query.Include(includeString);
-
-            if (predicate != null) query = query.Where(predicate);
-
-            if (orderBy != null)
-                return await orderBy(query).ToListAsync();
-            return await query.ToListAsync();
-        }
-
-        public async Task<IReadOnlyList<T>> GetAsync(Expression<Func<T, bool>> predicate = null, Func<IQueryable<T>, IOrderedQueryable<T>> orderBy = null, List<Expression<Func<T, object>>> includes = null, bool disableTracking = true)
-        {
-            IQueryable<T> query = _dbContext.Set<T>();
-            if (disableTracking) query = query.AsNoTracking();
-
-            if (includes != null) query = includes.Aggregate(query, (current, include) => current.Include(include));
-
-            if (predicate != null) query = query.Where(predicate);
-
-            if (orderBy != null)
-                return await orderBy(query).ToListAsync();
-            return await query.ToListAsync();
-        }
-
-        public virtual async Task<T> GetByIdAsync(int id)
-        {
-            return await _dbContext.Set<T>().FindAsync(id);
-        }
-
-        public async Task<T> AddAsync(T entity)
-        {
-            _dbContext.Set<T>().Add(entity);
-            await _dbContext.SaveChangesAsync();
-            return entity;
-        }
-
-        public async Task UpdateAsync(T entity)
-        {
-            _dbContext.Entry(entity).State = EntityState.Modified;
-            await _dbContext.SaveChangesAsync();
-        }
-
-        public async Task DeleteAsync(T entity)
-        {
-            _dbContext.Set<T>().Remove(entity);
-            await _dbContext.SaveChangesAsync();
-        }
     }
 }

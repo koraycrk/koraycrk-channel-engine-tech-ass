@@ -17,6 +17,11 @@ using ChannelEngineAssessment.Core.Repositories;
 using ChannelEngineAssessment.Core.Repositories.Base;
 using ChannelEngineAssessment.Core.Configuration;
 using ChannelEngineAssessment.Infrastructure.Repository.Base;
+using AspnetRun.Application.Interfaces;
+using ChannelEngineAssessment.Web.Interfaces;
+using ChannelEngineAssessment.Web.Services;
+using ChannelEngineAssessment.Web.HealthChecks;
+using ChannelEngineAssessment.Application.Services;
 
 namespace ChannelEngineAssessment.Web
 {
@@ -79,25 +84,32 @@ namespace ChannelEngineAssessment.Web
             // Add Infrastructure Layer
             ConfigureDatabases(services);
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-            
+            services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped(typeof(IAppLogger<>), typeof(LoggerAdapter<>));
 
+            // Add Application Layer
+            services.AddScoped<IOrderService, OrderService>();
             
+
 
             // Add Web Layer
             services.AddAutoMapper(typeof(Startup)); // Add AutoMapper
-           
+            services.AddScoped<IIndexPageService, IndexPageService>();
+            services.AddScoped<IProductPageService, ProductPageService>();
+
 
             // Add Miscellaneous
             services.AddHttpContextAccessor();
-           
+            services.AddHealthChecks()
+              .AddCheck<IndexPageHealthCheck>("home_page_health_check");
+
         }
 
         public void ConfigureDatabases(IServiceCollection services)
         {
             // use in-memory database
-            services.AddDbContext<ChannelEngineAssessmentContext>(c =>
-                c.UseInMemoryDatabase("ChannelEngineAssessmentConnection"));
+            //services.AddDbContext<ChannelEngineAssessmentContext>(c =>
+            //    c.UseInMemoryDatabase("ChannelEngineAssessmentConnection"));
 
             //// use real database
             //services.AddDbContext<ChannelEngineAssessmentContext>(c =>

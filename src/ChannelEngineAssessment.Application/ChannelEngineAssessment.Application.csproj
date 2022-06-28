@@ -12,9 +12,4 @@
     <ProjectReference Include="..\ChannelEngineAssessment.Core\ChannelEngineAssessment.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Interfaces\" />
-    <Folder Include="Services\" />
-  </ItemGroup>
-
 </Project>
